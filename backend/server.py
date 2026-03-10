@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorClient
+import certifi
 import os
 import logging
 import uuid
@@ -26,7 +27,11 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+# Use TLS CA certs only for remote MongoDB Atlas connections
+if 'mongodb.net' in mongo_url or 'mongodb+srv' in mongo_url:
+    client = AsyncIOMotorClient(mongo_url, tlsCAFile=certifi.where())
+else:
+    client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'pharmainsight-jwt-secret')
@@ -106,17 +111,20 @@ async def require_admin(request: Request):
 # ---- Startup ----
 @app.on_event("startup")
 async def seed_admin():
-    existing = await db.users.find_one({"email": "admin@pharmainsight.com"})
-    if not existing:
-        await db.users.insert_one({
-            "id": str(uuid.uuid4()),
-            "email": "admin@pharmainsight.com",
-            "password": hash_password("admin123"),
-            "name": "Admin",
-            "role": "admin",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
-        logger.info("Admin user seeded: admin@pharmainsight.com / admin123")
+    try:
+        existing = await db.users.find_one({"email": "admin@pharmainsight.com"})
+        if not existing:
+            await db.users.insert_one({
+                "id": str(uuid.uuid4()),
+                "email": "admin@pharmainsight.com",
+                "password": hash_password("admin123"),
+                "name": "Admin",
+                "role": "admin",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            logger.info("Admin user seeded: admin@pharmainsight.com / admin123")
+    except Exception as e:
+        logger.error(f"Failed to seed admin user: {e}")
 
 
 # ---- Auth Routes ----
