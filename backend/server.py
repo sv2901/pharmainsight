@@ -35,7 +35,7 @@ else:
 db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'pharmainsight-jwt-secret')
-OPENAI_API_KEY = os.environ.get('emergentllmkey')
+OPENAI_API_KEY = os.environ.get('EMERGENT_LLM_KEY') or os.environ.get('emergentllmkey')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
