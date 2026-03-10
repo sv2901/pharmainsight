@@ -52,18 +52,25 @@ export default function ReportPage() {
 
   useEffect(() => {
     let interval;
+    let retryCount = 0;
     const fetchReport = async () => {
       try {
         const res = await api.get(`/reports/${id}`);
         setReport(res.data);
         setLoading(false);
+        setError(null);
+        retryCount = 0;
         if (res.data.status === "completed" || res.data.status === "failed") {
           if (interval) clearInterval(interval);
         }
       } catch (err) {
-        setError("Report not found");
-        setLoading(false);
-        if (interval) clearInterval(interval);
+        retryCount++;
+        // Only show error after 5 consecutive failures (15 seconds)
+        if (retryCount >= 5) {
+          setError("Report not found");
+          setLoading(false);
+          if (interval) clearInterval(interval);
+        }
       }
     };
     fetchReport();
