@@ -276,7 +276,19 @@ async def delete_report(report_id: str, user=Depends(get_current_user)):
 
 # ---- PDF Export ----
 @api_router.get("/reports/{report_id}/pdf")
-async def export_report_pdf(report_id: str, user=Depends(get_current_user)):
+async def export_report_pdf(report_id: str, token: str = None, request: Request = None):
+    # Support both header auth and query param token for direct browser downloads
+    user = None
+    if token:
+        try:
+            payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    else:
+        user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     report = await db.reports.find_one({"id": report_id, "user_id": user["id"]}, {"_id": 0})
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
