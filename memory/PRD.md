@@ -31,26 +31,32 @@ Build an AI system that predicts pharmaceutical drug market size and adoption us
 - Background task processing for report generation
 - Admin user seeding on startup (admin@pharmainsight.com / admin123)
 
+### Phase 2 (March 10, 2026)
+- PDF Export: Professional consulting-style PDF with embedded matplotlib charts (cover page, 8 sections, tables, charts)
+- Response Caching: 24-hour MongoDB-backed cache for agent results, dramatically reducing API costs on repeat analyses
+- Quick Insight: Single-call rapid executive brief with Opportunity Score (1-10), GO/NO-GO recommendation, key metrics
+- Historical Comparison: Side-by-side comparison of 2+ reports with revenue, CAGR, market size charts and executive summary comparison
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - All core features implemented ✅
 
 ### P1 (Important)
-- PDF export of consulting reports
 - Report sharing between team members
-- Historical report comparison
-- Bulk drug analysis
+- Bulk drug analysis (analyze multiple drugs at once)
+- Custom report templates
+- Email notifications when report completes
 
 ### P2 (Nice to Have)
 - Dashboard analytics (trends over time)
-- Custom report templates
 - Drug interaction analysis
 - Multi-language support
-- API rate limiting and caching for GPT-5.2 calls
+- API rate limiting
+- Report versioning and audit trail
 
 ## Next Tasks
-1. Add PDF export functionality for reports
-2. Add report sharing/collaboration features
-3. Implement caching to reduce GPT-5.2 API costs
-4. Add more chart types (waterfall, treemap)
-5. Add user activity audit log
+1. Add report sharing/collaboration features
+2. Bulk drug analysis (multiple drugs in one request)
+3. Email notifications via SendGrid/Resend when report completes
+4. Dashboard analytics with trend charts over time
+5. Report versioning
