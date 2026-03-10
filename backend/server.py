@@ -111,20 +111,36 @@ async def require_admin(request: Request):
 # ---- Startup ----
 @app.on_event("startup")
 async def seed_admin():
+    for attempt in range(5):
+        try:
+            existing = await db.users.find_one({"email": "admin@pharmainsight.com"})
+            if not existing:
+                await db.users.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "email": "admin@pharmainsight.com",
+                    "password": hash_password("admin123"),
+                    "name": "Admin",
+                    "role": "admin",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+                logger.info("Admin user seeded: admin@pharmainsight.com / admin123")
+            else:
+                logger.info("Admin user already exists")
+            return
+        except Exception as e:
+            logger.error(f"Seed admin attempt {attempt+1}/5 failed: {e}")
+            await asyncio.sleep(3)
+    logger.error("Failed to seed admin after 5 attempts")
+
+
+# ---- Health Check ----
+@api_router.get("/health")
+async def health_check():
     try:
-        existing = await db.users.find_one({"email": "admin@pharmainsight.com"})
-        if not existing:
-            await db.users.insert_one({
-                "id": str(uuid.uuid4()),
-                "email": "admin@pharmainsight.com",
-                "password": hash_password("admin123"),
-                "name": "Admin",
-                "role": "admin",
-                "created_at": datetime.now(timezone.utc).isoformat()
-            })
-            logger.info("Admin user seeded: admin@pharmainsight.com / admin123")
+        await db.command("ping")
+        return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        logger.error(f"Failed to seed admin user: {e}")
+        return {"status": "unhealthy", "database": str(e)}
 
 
 # ---- Auth Routes ----
