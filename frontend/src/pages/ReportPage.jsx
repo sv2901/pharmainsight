@@ -124,11 +124,28 @@ export default function ReportPage() {
             variant="outline"
             data-testid="download-pdf-btn"
             className="text-slate-600 border-slate-300 hover:bg-slate-50"
-            onClick={() => {
-              const token = localStorage.getItem("pharmainsight_token");
-              const url = `${process.env.REACT_APP_BACKEND_URL}/api/reports/${report.id}/pdf?token=${token}`;
-              window.open(url, "_blank");
-              toast.success("PDF opening in new tab...");
+            onClick={async () => {
+              try {
+                toast.info("Generating PDF...");
+                const token = localStorage.getItem("pharmainsight_token");
+                const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/reports/${report.id}/pdf?token=${token}`);
+                if (!res.ok) throw new Error("PDF generation failed");
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = `PharmaInsight_${report.drug_name}_${report.region}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                }, 200);
+                toast.success("PDF downloaded!");
+              } catch (err) {
+                toast.error("Failed to download PDF");
+              }
             }}
           >
             <Download className="w-4 h-4 mr-2" />
