@@ -112,6 +112,36 @@ export default function ReportPage() {
             {report.user_name && ` by ${report.user_name}`}
           </p>
         </div>
+        {report.status === "completed" && (
+          <Button
+            variant="outline"
+            data-testid="download-pdf-btn"
+            className="text-slate-600 border-slate-300 hover:bg-slate-50"
+            onClick={async () => {
+              try {
+                toast.info("Generating PDF...");
+                const token = localStorage.getItem("pharmainsight_token");
+                const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/reports/${report.id}/pdf`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error("PDF generation failed");
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `PharmaInsight_${report.drug_name}_${report.region}.pdf`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                toast.success("PDF downloaded!");
+              } catch {
+                toast.error("Failed to download PDF");
+              }
+            }}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
+        )}
       </div>
 
       {/* Generating State */}

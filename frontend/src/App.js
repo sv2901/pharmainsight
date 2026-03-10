@@ -7,6 +7,8 @@ import DashboardPage from "@/pages/DashboardPage";
 import NewAnalysisPage from "@/pages/NewAnalysisPage";
 import ReportPage from "@/pages/ReportPage";
 import AdminPage from "@/pages/AdminPage";
+import QuickInsightPage from "@/pages/QuickInsightPage";
+import ComparePage from "@/pages/ComparePage";
 import Sidebar from "@/components/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -93,6 +95,8 @@ function App() {
           <Route path="/" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
           <Route path="/new-analysis" element={<ProtectedRoute><AppLayout><NewAnalysisPage /></AppLayout></ProtectedRoute>} />
           <Route path="/reports/:id" element={<ProtectedRoute><AppLayout><ReportPage /></AppLayout></ProtectedRoute>} />
+          <Route path="/quick-insight" element={<ProtectedRoute><AppLayout><QuickInsightPage /></AppLayout></ProtectedRoute>} />
+          <Route path="/compare" element={<ProtectedRoute><AppLayout><ComparePage /></AppLayout></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AppLayout><AdminPage /></AppLayout></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

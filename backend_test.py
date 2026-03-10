@@ -185,6 +185,76 @@ class PharmaInsightAPITester:
         if success:
             print(f"   🗑️ Deleted report: {report_id}")
         return success
+    
+    def test_pdf_export(self, report_id):
+        """Test PDF export for completed report"""
+        url = f"{self.base_url}/reports/{report_id}/pdf"
+        headers = {'Authorization': f'Bearer {self.token}'}
+        
+        self.tests_run += 1
+        print(f"\n🔍 Testing PDF Export for report {report_id}...")
+        
+        try:
+            response = requests.get(url, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                # Check if response is actually a PDF
+                if response.headers.get('content-type') == 'application/pdf':
+                    self.tests_passed += 1
+                    print(f"✅ Passed - PDF generated successfully ({len(response.content)} bytes)")
+                    return True, response.content
+                else:
+                    print(f"❌ Failed - Expected PDF, got {response.headers.get('content-type')}")
+            elif response.status_code == 400:
+                print(f"⚠️ Expected failure - Report not completed yet")
+                return False, "Report not completed"
+            else:
+                print(f"❌ Failed - Status: {response.status_code}")
+                
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
+        
+        return False, {}
+    
+    def test_quick_insight(self):
+        """Test quick insight generation"""
+        insight_data = {
+            "drug_name": "Adalimumab",
+            "disease": "Rheumatoid Arthritis", 
+            "region": "India"
+        }
+        success, response = self.run_test(
+            "Generate Quick Insight",
+            "POST",
+            "quick-insight",
+            200,
+            data=insight_data
+        )
+        if success:
+            # Check if response has expected fields
+            expected_fields = ['opportunity_score', 'go_no_go', 'brief_analysis', 'market_size_estimate_usd_millions']
+            missing_fields = [f for f in expected_fields if f not in response]
+            if missing_fields:
+                print(f"   ⚠️ Missing fields: {missing_fields}")
+            else:
+                print(f"   💡 Insight: Score {response.get('opportunity_score')}/10, Decision: {response.get('go_no_go')}")
+        return success, response
+    
+    def test_report_comparison(self, report_ids):
+        """Test report comparison with list of report IDs"""
+        compare_data = {"report_ids": report_ids}
+        success, response = self.run_test(
+            "Compare Reports",
+            "POST", 
+            "reports/compare",
+            200,
+            data=compare_data
+        )
+        if success:
+            print(f"   📊 Comparison: {len(response)} reports returned")
+            for i, report in enumerate(response):
+                print(f"      {i+1}. {report.get('drug_name')} ({report.get('region')})")
+        return success, response
 
 def main():
     print("🚀 Starting PharmaInsight API Testing...")
@@ -221,16 +291,56 @@ def main():
     print("📊 REPORT GENERATION TESTS")
     print("="*60)
     
-    # Generate a report
+    # List existing reports first
+    reports_success, existing_reports = tester.test_list_reports()
+    
+    # Test Phase 2: Quick Insight Feature
+    print("\n" + "="*60)
+    print("💡 PHASE 2: QUICK INSIGHT TESTS")
+    print("="*60)
+    
+    tester.test_quick_insight()
+    
+    # Test Phase 2: Report Comparison
+    print("\n" + "="*60) 
+    print("📊 PHASE 2: REPORT COMPARISON TESTS")
+    print("="*60)
+    
+    if existing_reports and len(existing_reports) >= 2:
+        # Get completed reports for comparison
+        completed_reports = [r for r in existing_reports if r.get('status') == 'completed']
+        if len(completed_reports) >= 2:
+            report_ids = [r['id'] for r in completed_reports[:2]]
+            tester.test_report_comparison(report_ids)
+        else:
+            print("⚠️ Need at least 2 completed reports for comparison test")
+    else:
+        print("⚠️ Need at least 2 reports for comparison test")
+    
+    # Test Phase 2: PDF Export
+    print("\n" + "="*60)
+    print("📄 PHASE 2: PDF EXPORT TESTS") 
+    print("="*60)
+    
+    if existing_reports:
+        completed_reports = [r for r in existing_reports if r.get('status') == 'completed']
+        if completed_reports:
+            # Test PDF export on first completed report
+            test_report = completed_reports[0]
+            print(f"   📋 Testing PDF export for: {test_report.get('drug_name')} (ID: {test_report.get('id')})")
+            tester.test_pdf_export(test_report['id'])
+        else:
+            print("⚠️ No completed reports found for PDF export test")
+    else:
+        print("⚠️ No reports found for PDF export test")
+    
+    # Generate a new report for additional testing
     report_id = tester.test_generate_report()
     if report_id:
         time.sleep(2)  # Allow some processing time
         
         # Check report status
         report_success, report_data = tester.test_get_report(report_id)
-        
-        # List all reports
-        tester.test_list_reports()
         
         # Clean up - delete the test report
         tester.test_delete_report(report_id)

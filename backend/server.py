@@ -1,21 +1,25 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import uuid
 import asyncio
+import hashlib
 from pathlib import Path
 from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime, timezone
+from typing import Optional, List
+from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt as pyjwt
 
 from agents.market_research_agent import run_market_research
 from agents.forecast_agent import run_forecast
 from agents.strategy_agent import run_strategy
+from agents.quick_insight_agent import run_quick_insight
+from pdf_generator import generate_report_pdf
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -50,6 +54,14 @@ class ReportInput(BaseModel):
     disease: str
     region: str = "India"
     forecast_horizon: int = 5
+
+class QuickInsightInput(BaseModel):
+    drug_name: str
+    disease: str
+    region: str = "India"
+
+class CompareInput(BaseModel):
+    report_ids: List[str]
 
 
 # ---- Auth Utilities ----
@@ -178,27 +190,61 @@ async def generate_report(input: ReportInput, user=Depends(get_current_user)):
     asyncio.create_task(_process_report(report_id, input))
     return {"id": report_id, "status": "generating"}
 
+def _cache_key(drug_name, disease, region, forecast_horizon):
+    raw = f"{drug_name.lower().strip()}|{disease.lower().strip()}|{region.lower().strip()}|{forecast_horizon}"
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+async def _get_cached_agent(cache_key, agent_name):
+    """Check MongoDB cache for a recent agent result (24h TTL)."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    cached = await db.agent_cache.find_one(
+        {"cache_key": cache_key, "agent": agent_name, "created_at": {"$gte": cutoff}},
+        {"_id": 0}
+    )
+    if cached:
+        logger.info(f"Cache HIT for {agent_name} (key={cache_key[:12]}...)")
+        return cached.get("data")
+    return None
+
+async def _set_cached_agent(cache_key, agent_name, data):
+    await db.agent_cache.update_one(
+        {"cache_key": cache_key, "agent": agent_name},
+        {"$set": {"cache_key": cache_key, "agent": agent_name, "data": data, "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+
 async def _process_report(report_id: str, input: ReportInput):
     try:
+        ck = _cache_key(input.drug_name, input.disease, input.region, input.forecast_horizon)
+
         logger.info(f"Report {report_id}: Starting market research...")
         await db.reports.update_one({"id": report_id}, {"$set": {"status": "researching"}})
-        market_data = await run_market_research(
-            EMERGENT_LLM_KEY, input.drug_name, input.disease, input.region, input.forecast_horizon
-        )
+        market_data = await _get_cached_agent(ck, "market_research")
+        if not market_data:
+            market_data = await run_market_research(
+                EMERGENT_LLM_KEY, input.drug_name, input.disease, input.region, input.forecast_horizon
+            )
+            await _set_cached_agent(ck, "market_research", market_data)
         await db.reports.update_one({"id": report_id}, {"$set": {"market_research": market_data}})
 
         logger.info(f"Report {report_id}: Starting forecast...")
         await db.reports.update_one({"id": report_id}, {"$set": {"status": "forecasting"}})
-        forecast_data = await run_forecast(
-            EMERGENT_LLM_KEY, market_data, input.drug_name, input.disease, input.region, input.forecast_horizon
-        )
+        forecast_data = await _get_cached_agent(ck, "forecast")
+        if not forecast_data:
+            forecast_data = await run_forecast(
+                EMERGENT_LLM_KEY, market_data, input.drug_name, input.disease, input.region, input.forecast_horizon
+            )
+            await _set_cached_agent(ck, "forecast", forecast_data)
         await db.reports.update_one({"id": report_id}, {"$set": {"forecast": forecast_data}})
 
         logger.info(f"Report {report_id}: Starting strategy analysis...")
         await db.reports.update_one({"id": report_id}, {"$set": {"status": "analyzing"}})
-        strategy_data = await run_strategy(
-            EMERGENT_LLM_KEY, market_data, forecast_data, input.drug_name, input.disease, input.region
-        )
+        strategy_data = await _get_cached_agent(ck, "strategy")
+        if not strategy_data:
+            strategy_data = await run_strategy(
+                EMERGENT_LLM_KEY, market_data, forecast_data, input.drug_name, input.disease, input.region
+            )
+            await _set_cached_agent(ck, "strategy", strategy_data)
         await db.reports.update_one({"id": report_id}, {"$set": {"strategy": strategy_data, "status": "completed"}})
         logger.info(f"Report {report_id}: Completed successfully")
     except Exception as e:
@@ -226,6 +272,63 @@ async def delete_report(report_id: str, user=Depends(get_current_user)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Report not found")
     return {"message": "Report deleted"}
+
+
+# ---- PDF Export ----
+@api_router.get("/reports/{report_id}/pdf")
+async def export_report_pdf(report_id: str, user=Depends(get_current_user)):
+    report = await db.reports.find_one({"id": report_id, "user_id": user["id"]}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if report["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Report not yet completed")
+    try:
+        pdf_buffer = generate_report_pdf(report)
+        filename = f"PharmaInsight_{report['drug_name']}_{report['region']}_{report['created_at'][:10]}.pdf"
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        logger.error(f"PDF generation failed: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="PDF generation failed")
+
+
+# ---- Quick Insight ----
+@api_router.post("/quick-insight")
+async def quick_insight(input: QuickInsightInput, user=Depends(get_current_user)):
+    try:
+        result = await run_quick_insight(EMERGENT_LLM_KEY, input.drug_name, input.disease, input.region)
+        # Store quick insight
+        await db.quick_insights.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "drug_name": input.drug_name,
+            "disease": input.disease,
+            "region": input.region,
+            "result": result,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        return result
+    except Exception as e:
+        logger.error(f"Quick insight failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---- Report Comparison ----
+@api_router.post("/reports/compare")
+async def compare_reports(input: CompareInput, user=Depends(get_current_user)):
+    if len(input.report_ids) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 reports to compare")
+    reports = await db.reports.find(
+        {"id": {"$in": input.report_ids}, "user_id": user["id"], "status": "completed"},
+        {"_id": 0}
+    ).to_list(10)
+    if len(reports) < 2:
+        raise HTTPException(status_code=400, detail="Not enough completed reports found")
+    return reports
 
 
 # ---- Include Router & Middleware ----

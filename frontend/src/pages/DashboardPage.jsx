@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { FlaskConical, FileText, CheckCircle, Clock, Trash2, AlertCircle } from "lucide-react";
+import { FlaskConical, FileText, CheckCircle, Clock, Trash2, AlertCircle, GitCompareArrows } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const statusConfig = {
   completed: { label: "Completed", variant: "default", className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const { user } = useContext(AuthContext);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const navigate = useNavigate();
 
   const fetchReports = async () => {
@@ -55,6 +57,20 @@ export default function DashboardPage() {
   const completedCount = reports.filter((r) => r.status === "completed").length;
   const inProgressCount = reports.filter((r) => !["completed", "failed"].includes(r.status)).length;
   const uniqueDrugs = new Set(reports.map((r) => r.drug_name)).size;
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleCompare = () => {
+    const ids = Array.from(selectedIds).join(",");
+    navigate(`/compare?ids=${ids}`);
+  };
 
   const stats = [
     { label: "Total Reports", value: reports.length, icon: FileText, color: "text-slate-700" },
@@ -107,6 +123,17 @@ export default function DashboardPage() {
         <h2 className="text-xl font-semibold text-slate-900" style={{ fontFamily: "'Playfair Display', serif" }}>
           Recent Reports
         </h2>
+        {selectedIds.size >= 2 && (
+          <Button
+            data-testid="compare-btn"
+            variant="outline"
+            onClick={handleCompare}
+            className="text-slate-700 border-slate-300"
+          >
+            <GitCompareArrows className="w-4 h-4 mr-2" />
+            Compare Selected ({selectedIds.size})
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -135,6 +162,7 @@ export default function DashboardPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50/80">
+                <TableHead className="w-10"></TableHead>
                 <TableHead className="font-semibold text-slate-600">Drug</TableHead>
                 <TableHead className="font-semibold text-slate-600">Disease</TableHead>
                 <TableHead className="font-semibold text-slate-600">Region</TableHead>
@@ -154,6 +182,15 @@ export default function DashboardPage() {
                     className="cursor-pointer hover:bg-slate-50 transition-colors"
                     onClick={() => navigate(`/reports/${report.id}`)}
                   >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {report.status === "completed" && (
+                        <Checkbox
+                          data-testid={`compare-check-${report.id}`}
+                          checked={selectedIds.has(report.id)}
+                          onCheckedChange={() => toggleSelect(report.id)}
+                        />
+                      )}
+                    </TableCell>
                     <TableCell className="font-semibold text-slate-900">{report.drug_name}</TableCell>
                     <TableCell className="text-slate-600">{report.disease}</TableCell>
                     <TableCell className="text-slate-600">{report.region}</TableCell>

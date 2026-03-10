@@ -1,13 +1,14 @@
 import { useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "@/App";
-import { LayoutDashboard, FlaskConical, Users, LogOut, TrendingUp } from "lucide-react";
+import { LayoutDashboard, FlaskConical, Users, LogOut, TrendingUp, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/new-analysis", label: "New Analysis", icon: FlaskConical },
+  { path: "/quick-insight", label: "Quick Insight", icon: Zap },
 ];
 
 export default function Sidebar() {
