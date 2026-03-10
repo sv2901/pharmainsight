@@ -1,7 +1,10 @@
 import json
 import re
 import logging
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import OpenAI
+import os
+
+client = OpenAI(api_key=os.getenv("EMERGENT_LLM_KEY"))
 
 logger = logging.getLogger(__name__)
 
