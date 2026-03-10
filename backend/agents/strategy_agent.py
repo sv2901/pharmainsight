@@ -1,22 +1,20 @@
 import json
 import re
 import logging
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_MSG = (
+    "You are a senior pharmaceutical strategy consultant at a top-tier firm (McKinsey/BCG level). "
+    "You provide executive-ready strategic insights and recommendations based on market research and forecast data. "
+    "Your analysis must be structured, specific, and actionable. "
+    "Return ONLY valid JSON with no markdown formatting or extra text."
+)
+
 
 async def run_strategy(api_key, market_data, forecast_data, drug_name, disease, region):
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=f"st-{drug_name}-{region}-{id(api_key)}",
-        system_message=(
-            "You are a senior pharmaceutical strategy consultant at a top-tier firm (McKinsey/BCG level). "
-            "You provide executive-ready strategic insights and recommendations based on market research and forecast data. "
-            "Your analysis must be structured, specific, and actionable. "
-            "Return ONLY valid JSON with no markdown formatting or extra text."
-        )
-    ).with_model("openai", "gpt-5.2")
+    client = AsyncOpenAI(api_key=api_key)
 
     prompt = f"""Based on the market research and forecast data below, provide a comprehensive strategic analysis for commercializing {drug_name} for {disease} in {region}.
 
@@ -99,7 +97,15 @@ Requirements:
 - All insights must be specific to {region} market dynamics
 - Return ONLY the JSON object"""
 
-    response = await chat.send_message(UserMessage(text=prompt))
+    completion = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": SYSTEM_MSG},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+    )
+    response = completion.choices[0].message.content
     return _parse_json(response, "strategy")
 
 

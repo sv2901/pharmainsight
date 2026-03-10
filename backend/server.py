@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
@@ -29,7 +30,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'pharmainsight-jwt-secret')
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+OPENAI_API_KEY = os.environ.get('emergentllmkey')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -222,7 +223,7 @@ async def _process_report(report_id: str, input: ReportInput):
         market_data = await _get_cached_agent(ck, "market_research")
         if not market_data:
             market_data = await run_market_research(
-                EMERGENT_LLM_KEY, input.drug_name, input.disease, input.region, input.forecast_horizon
+                OPENAI_API_KEY, input.drug_name, input.disease, input.region, input.forecast_horizon
             )
             await _set_cached_agent(ck, "market_research", market_data)
         await db.reports.update_one({"id": report_id}, {"$set": {"market_research": market_data}})
@@ -232,7 +233,7 @@ async def _process_report(report_id: str, input: ReportInput):
         forecast_data = await _get_cached_agent(ck, "forecast")
         if not forecast_data:
             forecast_data = await run_forecast(
-                EMERGENT_LLM_KEY, market_data, input.drug_name, input.disease, input.region, input.forecast_horizon
+                OPENAI_API_KEY, market_data, input.drug_name, input.disease, input.region, input.forecast_horizon
             )
             await _set_cached_agent(ck, "forecast", forecast_data)
         await db.reports.update_one({"id": report_id}, {"$set": {"forecast": forecast_data}})
@@ -242,7 +243,7 @@ async def _process_report(report_id: str, input: ReportInput):
         strategy_data = await _get_cached_agent(ck, "strategy")
         if not strategy_data:
             strategy_data = await run_strategy(
-                EMERGENT_LLM_KEY, market_data, forecast_data, input.drug_name, input.disease, input.region
+                OPENAI_API_KEY, market_data, forecast_data, input.drug_name, input.disease, input.region
             )
             await _set_cached_agent(ck, "strategy", strategy_data)
         await db.reports.update_one({"id": report_id}, {"$set": {"strategy": strategy_data, "status": "completed"}})
@@ -312,7 +313,7 @@ async def export_report_pdf(report_id: str, token: str = None, request: Request 
 @api_router.post("/quick-insight")
 async def quick_insight(input: QuickInsightInput, user=Depends(get_current_user)):
     try:
-        result = await run_quick_insight(EMERGENT_LLM_KEY, input.drug_name, input.disease, input.region)
+        result = await run_quick_insight(OPENAI_API_KEY, input.drug_name, input.disease, input.region)
         # Store quick insight
         await db.quick_insights.insert_one({
             "id": str(uuid.uuid4()),
@@ -353,6 +354,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---- Serve Static Frontend (Railway production) ----
+frontend_build = Path(__file__).parent.parent / "frontend" / "build"
+if frontend_build.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_build), html=True), name="static")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

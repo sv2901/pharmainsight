@@ -1,22 +1,20 @@
 import json
 import re
 import logging
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_MSG = (
+    "You are an expert pharmaceutical market forecasting analyst. "
+    "You build quantitative market forecasts using: Revenue = Patient Population x Treatment Rate x Adoption Rate x Drug Price. "
+    "Generate base, best, and worst case scenarios with mathematically consistent calculations. "
+    "Return ONLY valid JSON with no markdown formatting or extra text."
+)
+
 
 async def run_forecast(api_key, market_data, drug_name, disease, region, forecast_horizon):
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=f"fc-{drug_name}-{region}-{id(api_key)}",
-        system_message=(
-            "You are an expert pharmaceutical market forecasting analyst. "
-            "You build quantitative market forecasts using: Revenue = Patient Population x Treatment Rate x Adoption Rate x Drug Price. "
-            "Generate base, best, and worst case scenarios with mathematically consistent calculations. "
-            "Return ONLY valid JSON with no markdown formatting or extra text."
-        )
-    ).with_model("openai", "gpt-5.2")
+    client = AsyncOpenAI(api_key=api_key)
 
     prompt = f"""Based on the following market research data, generate a quantitative forecast for {drug_name} in {disease} market in {region} over {forecast_horizon} years.
 
@@ -80,7 +78,15 @@ Requirements:
 - Revenue in millions USD
 - Return ONLY the JSON object"""
 
-    response = await chat.send_message(UserMessage(text=prompt))
+    completion = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": SYSTEM_MSG},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+    )
+    response = completion.choices[0].message.content
     return _parse_json(response, "forecast")
 
 

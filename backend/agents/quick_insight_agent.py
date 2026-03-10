@@ -1,21 +1,13 @@
 import json
 import re
 import logging
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
 
 async def run_quick_insight(api_key, drug_name, disease, region):
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=f"qi-{drug_name}-{region}-{id(api_key)}",
-        system_message=(
-            "You are a senior pharmaceutical market analyst providing rapid executive briefs. "
-            "You provide concise, data-driven 1-page assessments. All data must be based on real published sources. "
-            "Return ONLY valid JSON with no markdown or extra text."
-        )
-    ).with_model("openai", "gpt-5.2")
+    client = AsyncOpenAI(api_key=api_key)
 
     prompt = f"""Provide a rapid executive brief for the following pharmaceutical opportunity:
 
@@ -59,7 +51,15 @@ Requirements:
 - Be decisive in the GO/NO GO recommendation
 - Return ONLY the JSON object"""
 
-    response = await chat.send_message(UserMessage(text=prompt))
+    completion = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are an expert pharmaceutical market analyst. Provide rapid, data-driven executive briefs. Return ONLY valid JSON with no markdown formatting or extra text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+    )
+    response = completion.choices[0].message.content
 
     text = response.strip()
     if text.startswith("```"):

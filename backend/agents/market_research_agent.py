@@ -1,25 +1,20 @@
 import json
 import re
 import logging
-from openai import OpenAI
-import os
-
-client = OpenAI(api_key=os.getenv("EMERGENT_LLM_KEY"))
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_MSG = (
+    "You are an expert pharmaceutical market research analyst specializing in global and Indian pharmaceutical markets. "
+    "You provide accurate, data-driven market intelligence based on real epidemiological data, published clinical studies, "
+    "WHO/ICMR reports, and industry databases. All data must be based on real published sources. "
+    "Return ONLY valid JSON with no markdown formatting or extra text."
+)
+
 
 async def run_market_research(api_key, drug_name, disease, region, forecast_horizon):
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=f"mr-{drug_name}-{region}-{id(api_key)}",
-        system_message=(
-            "You are an expert pharmaceutical market research analyst specializing in global and Indian pharmaceutical markets. "
-            "You provide accurate, data-driven market intelligence based on real epidemiological data, published clinical studies, "
-            "WHO/ICMR reports, and industry databases. All data must be based on real published sources. "
-            "Return ONLY valid JSON with no markdown formatting or extra text."
-        )
-    ).with_model("openai", "gpt-5.2")
+    client = AsyncOpenAI(api_key=api_key)
 
     prompt = f"""Conduct a comprehensive market research analysis:
 
@@ -85,7 +80,15 @@ Requirements:
 - Prices should reflect actual market prices in {region}
 - Return ONLY the JSON object"""
 
-    response = await chat.send_message(UserMessage(text=prompt))
+    completion = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": SYSTEM_MSG},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+    )
+    response = completion.choices[0].message.content
     return _parse_json(response, "market research")
 
 
