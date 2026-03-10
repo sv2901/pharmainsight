@@ -1,0 +1,133 @@
+{
+  "identity": {
+    "name": "PharmaInsight",
+    "archetype": "The Strategic Authority",
+    "description": "A premium, AI-powered consulting analyst platform for life sciences. It mimics the output and aesthetic of top-tier firms like McKinsey and BCG.",
+    "emotional_tone": ["Authoritative", "Precise", "Trusted", "High-Value", "Data-Driven"]
+  },
+  "theme": {
+    "mode": "light",
+    "strategy": "Refined Corporate",
+    "background": "bg-slate-50",
+    "surface": "bg-white",
+    "border": "border-slate-200"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Playfair Display, serif",
+      "body": "Manrope, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl font-bold tracking-tight text-slate-900",
+      "h2": "text-3xl font-semibold tracking-tight text-slate-900",
+      "h3": "text-2xl font-semibold text-slate-800",
+      "body_lg": "text-lg font-normal text-slate-700 leading-relaxed",
+      "body": "text-base font-normal text-slate-600 leading-relaxed",
+      "caption": "text-sm font-medium text-slate-500 uppercase tracking-wide"
+    }
+  },
+  "colors": {
+    "primary": {
+      "DEFAULT": "#0f172a",
+      "foreground": "#f8fafc",
+      "hover": "#1e293b"
+    },
+    "secondary": {
+      "DEFAULT": "#f1f5f9",
+      "foreground": "#0f172a",
+      "hover": "#e2e8f0"
+    },
+    "accent": {
+      "teal": "#0d9488",
+      "gold": "#d97706",
+      "red": "#dc2626",
+      "blue": "#2563eb"
+    },
+    "charts": {
+      "palette": ["#0f172a", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"],
+      "diverging": ["#004c6d", "#255e7e", "#3d708f", "#5383a1", "#6996b3"],
+      "categorical": ["#0f172a", "#0d9488", "#d97706", "#dc2626", "#2563eb"]
+    }
+  },
+  "layout_strategies": {
+    "dashboard_grid": {
+      "type": "Bento High Density",
+      "container": "grid grid-cols-1 md:grid-cols-4 gap-6 p-8",
+      "widgets": {
+        "summary": "col-span-1 bg-white border border-slate-200 p-6 rounded-sm shadow-sm",
+        "chart_primary": "col-span-2 row-span-2 bg-white border border-slate-200 p-6 rounded-sm shadow-sm",
+        "feed": "col-span-1 row-span-2 bg-white border border-slate-200 p-6 rounded-sm shadow-sm"
+      }
+    },
+    "report_view": {
+      "type": "Editorial White Paper",
+      "container": "max-w-5xl mx-auto bg-white shadow-lg border border-slate-200 min-h-screen my-8 p-12",
+      "header": "border-b border-slate-100 pb-8 mb-8",
+      "section": "mb-12"
+    }
+  },
+  "components": {
+    "card": {
+      "base": "bg-white border border-slate-200 rounded-sm shadow-sm hover:shadow-md transition-shadow duration-200",
+      "header": "px-6 py-4 border-b border-slate-100 bg-slate-50/50",
+      "title": "font-serif text-lg font-semibold text-slate-900",
+      "content": "p-6"
+    },
+    "button": {
+      "primary": "bg-slate-900 text-white hover:bg-slate-800 rounded-md px-6 py-2.5 font-medium shadow-sm transition-all active:scale-[0.98]",
+      "secondary": "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 rounded-md px-6 py-2.5 font-medium transition-all",
+      "ghost": "text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-4 py-2 transition-all"
+    },
+    "input": {
+      "base": "flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    },
+    "badge": {
+      "default": "inline-flex items-center rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 text-slate-950",
+      "risk": "bg-red-50 text-red-700 border-red-200",
+      "success": "bg-emerald-50 text-emerald-700 border-emerald-200",
+      "neutral": "bg-slate-100 text-slate-700 border-slate-200"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": "shadow-[0_1px_3px_0_rgb(0,0,0,0.1),0_1px_2px_-1px_rgb(0,0,0,0.1)]",
+    "borders": "border border-slate-200",
+    "glass": "backdrop-blur-sm bg-white/90 border-b border-slate-200/60",
+    "gradients": "NONE - use solid colors for professional look"
+  },
+  "image_assets": {
+    "login_hero": {
+      "url": "https://images.unsplash.com/photo-1581056771085-3ce30d907416?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwyfHxwaGFybWFjZXV0aWNhbCUyMGxhYm9yYXRvcnklMjByZXNlYXJjaCUyMG1vZGVybnxlbnwwfHx8fDE3NzMxMDQxMzZ8MA&ixlib=rb-4.1.0&q=85",
+      "desc": "Clean pharmaceutical lab shelving, suggests precision and research"
+    },
+    "dashboard_bg": {
+      "url": "https://images.unsplash.com/photo-1560506967-f1afcf6100e8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwyfHxtZWRpY2FsJTIwZG5hJTIwYWJzdHJhY3QlMjBibHVlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzMxMDQxMzd8MA&ixlib=rb-4.1.0&q=85",
+      "desc": "Subtle abstract blue water/DNA texture for headers"
+    },
+    "consulting_team": {
+      "url": "https://images.unsplash.com/photo-1637665662134-db459c1bbb46?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHw0fHxjb3Jwb3JhdGUlMjBidXNpbmVzcyUyMG1lZXRpbmclMjBib2FyZHJvb20lMjBjb25zdWx0aW5nfGVufDB8fHx8MTc3MzEwNDEzN3ww&ixlib=rb-4.1.0&q=85",
+      "desc": "Modern conference room, professional setting"
+    },
+    "doctor_tablet": {
+       "url": "https://images.unsplash.com/photo-1758691461957-13aff0c37c6f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAxODF8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjB1c2luZyUyMGRpZ2l0YWwlMjB0YWJsZXQlMjBob3NwaXRhbHxlbnwwfHx8fDE3NzMxMDQxMzh8MA&ixlib=rb-4.1.0&q=85",
+       "desc": "Doctor analyzing data on tablet"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Install 'recharts' and 'lucide-react' immediately.",
+    "Install 'clsx' and 'tailwind-merge' for class handling.",
+    "Do NOT use gradients for backgrounds. Use solid whites and slate-50s.",
+    "Use 'Playfair Display' ONLY for h1, h2, and report titles. Use 'Manrope' (or Inter) for everything else.",
+    "Ensure all interactive elements have data-testid attributes.",
+    "The admin panel is hidden. Implement a global keyboard listener for Ctrl+Shift+A to toggle the Admin login modal.",
+    "Use the provided image assets for the Login page and Dashboard headers.",
+    "Charts must use the custom color palette defined in 'colors.charts'.",
+    "Keep the UI 'High Contrast' and 'Print Ready' style."
+  ],
+  "universal_guidelines": {
+    "spacing": "Use comfortable spacing (p-6, p-8) for dashboard cards to mimic a printed report feel.",
+    "accessibility": "Ensure text contrast ratio is at least 4.5:1. Use slate-700+ for body text.",
+    "interaction": "Buttons should have a subtle active state scale-[0.98]. Inputs should have a distinct ring-2 on focus.",
+    "motion": "Use minimal, professional transitions (duration-200). Avoid bouncy or springy animations. Think 'PowerPoint Slide' smooth, not 'Gaming App' bounce."
+  }
+}
