@@ -128,7 +128,7 @@ export default function ReportPage() {
               try {
                 toast.info("Generating PDF...");
                 const token = localStorage.getItem("pharmainsight_token");
-                const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/reports/${report.id}/pdf?token=${token}`);
+                const res = await fetch(`/api/reports/${report.id}/pdf?token=${token}`);
                 if (!res.ok) throw new Error("PDF generation failed");
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
