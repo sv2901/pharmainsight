@@ -380,9 +380,22 @@ app.add_middleware(
 )
 
 # ---- Serve Static Frontend (Railway production) ----
+from starlette.responses import FileResponse
+
 frontend_build = Path(__file__).parent.parent / "frontend" / "build"
 if frontend_build.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_build), html=True), name="static")
+    # Serve static assets (JS, CSS, images)
+    app.mount("/static", StaticFiles(directory=str(frontend_build / "static")), name="static")
+
+    # Catch-all: serve index.html for any non-API route (SPA routing)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # If file exists in build dir, serve it (e.g. favicon.ico, manifest.json)
+        file_path = frontend_build / full_path
+        if full_path and file_path.is_file():
+            return FileResponse(str(file_path))
+        # Otherwise serve index.html for React Router
+        return FileResponse(str(frontend_build / "index.html"))
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
